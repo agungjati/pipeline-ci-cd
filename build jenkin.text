@@ -1,0 +1,27 @@
+node {
+    stage 'Checkout'
+    dir('repo-backend'){
+        git branch: 'prod',
+        credentialsId: '0000-00-000-00-0000000',
+        url: 'https://agungjati@bitbucket.org/agungjati/backend-api.git'
+    }  
+    
+   
+    stage 'Docker build'
+    docker.build('backend-api:latest')
+    sh('rm -rf *')
+    
+    stage 'Docker push'
+    docker.withRegistry('https://000.amazonaws.com', 'ecr:eu-west-1:ecr-credentials') {
+        docker.image('backend-api').push('latest')
+    }
+    
+    stage 'Cleanup'
+    sh('docker rmi backend-api:latest')
+    sh('docker image rm 0000.amazonaws.com/backend-api:latest')
+    sh('docker image prune -f')
+    sh('docker volume ls -qf dangling=true | xargs -r docker volume rm -f')
+    
+    stage 'Deploy'
+    sh('aws ecs update-service --cluster repo-prod --service srvc-prod-backend-api --force-new-deployment')
+}
