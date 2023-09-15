@@ -1,0 +1,45 @@
+name: Validation After Merge
+
+on:
+  push:
+    branches:
+      - main
+      - prod
+      - staging
+  pull_request:
+    types: ['opened', 'edited', 'reopened', 'synchronize']
+    branches:
+      - main
+      - prod
+      - staging
+      - pre-production
+
+jobs:
+  build:
+    name: PR Validation
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [10.16.3]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node-version }}
+    
+      - name: Install Node.js dependencies
+        run: npm ci
+
+      - name: Run linter
+        run: npm run lint
+
+      - name: Run test
+        run: npm run test
+
+      - run: node patch.js
+
+      - name: Run test ssr
+        run: npm run test:ssr
